@@ -16,8 +16,9 @@ export default function CanvasTopBar({ saveStatus }: Props) {
   const workflowId   = useWorkflowStore((s) => s.workflowId)
   const workflowName = useWorkflowStore((s) => s.workflowName)
   const setName      = useWorkflowStore((s) => s.setWorkflowName)
-  const nodes        = useWorkflowStore((s) => s.nodes)
-  const edges        = useWorkflowStore((s) => s.edges)
+  const nodes          = useWorkflowStore((s) => s.nodes)
+  const edges          = useWorkflowStore((s) => s.edges)
+  const setActiveRunId = useWorkflowStore((s) => s.setActiveRunId)
 
   const [editing, setEditing]   = useState(false)
   const [nameVal, setNameVal]   = useState(workflowName)
@@ -67,7 +68,8 @@ export default function CanvasTopBar({ saveStatus }: Props) {
       } else {
         body = { scope: 'full' }
       }
-      await api.runs.trigger(workflowId, body)
+      const result = await api.runs.trigger(workflowId, body)
+      setActiveRunId(result.runId)
     } finally {
       setRunning(false)
     }
