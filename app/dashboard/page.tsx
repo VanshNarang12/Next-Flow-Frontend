@@ -3,12 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import { api, type WorkflowSummary } from '@/lib/api'
 import WorkflowCard from '@/components/dashboard/WorkflowCard'
 import DeleteModal from '@/components/dashboard/DeleteModal'
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { isLoaded } = useAuth()
 
   const [workflows, setWorkflows]       = useState<WorkflowSummary[]>([])
   const [loading, setLoading]           = useState(true)
@@ -30,7 +32,7 @@ export default function DashboardPage() {
     }
   }, [])
 
-  useEffect(() => { loadWorkflows() }, [loadWorkflows])
+  useEffect(() => { if (isLoaded) loadWorkflows() }, [loadWorkflows, isLoaded])
 
   async function handleCreate() {
     setCreating(true)

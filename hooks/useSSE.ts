@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { useWorkflowStore } from '@/store/workflow'
 
@@ -53,6 +54,7 @@ const RECONNECT_DELAY_MS = 3_000
 const CLEAR_DELAY_MS     = 3_000   // how long to show glow after run ends
 
 export function useSSE(workflowId: string) {
+  const { isLoaded } = useAuth()
   // Select only stable action references — avoids re-running the effect
   const setNodeStatus    = useWorkflowStore((s) => s.setNodeStatus)
   const setActiveRunId   = useWorkflowStore((s) => s.setActiveRunId)
@@ -60,7 +62,7 @@ export function useSSE(workflowId: string) {
   const updateNodeData   = useWorkflowStore((s) => s.updateNodeData)
 
   useEffect(() => {
-    if (!workflowId) return
+    if (!workflowId || !isLoaded) return
 
     let es: EventSource
     let closed         = false
@@ -145,7 +147,6 @@ export function useSSE(workflowId: string) {
       clearTimeout(reconnectTimer)
       es?.close()
     }
-  // Stable store action refs don't change; workflowId is the only real dep
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId])
+  }, [workflowId, isLoaded])
 }

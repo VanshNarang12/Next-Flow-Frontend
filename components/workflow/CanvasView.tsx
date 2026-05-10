@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useAuth } from '@clerk/nextjs'
 import {
   ReactFlow,
   Background,
@@ -115,6 +116,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export default function CanvasView({ workflowId }: { workflowId: string }) {
   const { fitView, screenToFlowPosition } = useReactFlow()
+  const { isLoaded } = useAuth()
 
   const store = useWorkflowStore()
 
@@ -134,6 +136,7 @@ export default function CanvasView({ workflowId }: { workflowId: string }) {
   // ── Load workflow ───────────────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!isLoaded) return
     let cancelled = false
     async function load() {
       try {
@@ -151,7 +154,7 @@ export default function CanvasView({ workflowId }: { workflowId: string }) {
     load()
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowId])
+  }, [workflowId, isLoaded])
 
   useEffect(() => {
     if (skipSaveRef.current) {
