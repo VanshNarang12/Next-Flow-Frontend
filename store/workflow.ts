@@ -71,7 +71,7 @@ interface WorkflowActions {
   updateNodeData: (nodeId: string, patch: Record<string, unknown>) => void
 
   // Execution
-  setNodeStatus: (nodeId: string, status: NodeStatus) => void
+  setNodeStatus: (nodeId: string, status: NodeStatus, error?: string | null) => void
   setNodeOutput: (nodeId: string, output: unknown) => void
   setActiveRunId: (runId: string | null) => void
   clearExecutionState: () => void
@@ -211,10 +211,10 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   // ── Execution ──────────────────────────────────────────────────────────────
 
-  setNodeStatus(nodeId, status) {
+  setNodeStatus(nodeId, status, error) {
     set((s) => ({
       nodes: s.nodes.map((n) =>
-        n.id === nodeId ? { ...n, data: { ...n.data, status } } : n
+        n.id === nodeId ? { ...n, data: { ...n.data, status, ...(error !== undefined && { error }) } } : n
       ),
       runningNodeIds:
         status === 'running'

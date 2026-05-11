@@ -55,7 +55,7 @@ export function useSSE(workflowId: string) {
         if (stopRef.current) return
 
         for (const exec of workflowRun.nodeExecutions ?? []) {
-          setNodeStatus(exec.nodeId, exec.status as never)
+          setNodeStatus(exec.nodeId, exec.status as never, exec.status === 'failed' ? (exec.error ?? null) : null)
           if (exec.output && exec.status === 'success') {
             const { nodes } = useWorkflowStore.getState()
             const node = nodes.find((n) => n.id === exec.nodeId)
