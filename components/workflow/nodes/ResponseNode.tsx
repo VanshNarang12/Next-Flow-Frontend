@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import NodeContextMenu from './NodeContextMenu'
 
@@ -18,8 +19,25 @@ function glowClass(status: string) {
   return ''
 }
 
+async function downloadImage(url: string) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    const ext = blob.type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png'
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `output.${ext}`
+    a.click()
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    window.open(url, '_blank')
+  }
+}
+
 export default function ResponseNode({ id, data, selected }: NodeProps) {
   const d = data as ResponseData
+  const [downloading, setDownloading] = useState(false)
 
   const inputConnected = d.inputs?.input?.connectedFrom ?? null
   const output         = d.output ?? null
@@ -69,12 +87,33 @@ export default function ResponseNode({ id, data, selected }: NodeProps) {
             <span className="text-xs text-white/20">Result will appear here</span>
           </div>
         ) : isImageUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={output}
-            alt="Result"
-            className="w-full rounded-lg border border-white/10 object-cover max-h-48"
-          />
+          <div className="relative group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={output}
+              alt="Result"
+              className="w-full rounded-lg border border-white/10 object-cover max-h-48"
+            />
+            <button
+              onClick={async (e) => {
+                e.stopPropagation()
+                if (downloading) return
+                setDownloading(true)
+                await downloadImage(output)
+                setDownloading(false)
+              }}
+              className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 rounded-md p-1.5 nodrag nopan"
+              title="Download image"
+            >
+              {downloading ? (
+                <span className="block w-3.5 h-3.5 border border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 1v7m0 0L4.5 5.5M7 8l2.5-2.5M2 11h10" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+          </div>
         ) : (
           <div className="min-h-16 max-h-48 overflow-y-auto rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-2.5 py-2">
             <p className="text-xs text-white/70 whitespace-pre-wrap">{output}</p>

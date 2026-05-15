@@ -19,7 +19,7 @@ function applyOutput(
       updateNodeData(nodeId, { outputs: { response: output.response ?? null } })
       break
     case 'response': {
-      const raw = output.result ?? output.value ?? output.response ?? output.outputImage ?? null
+      const raw = output.result ?? output.input ?? output.value ?? output.response ?? output.outputImage ?? null
       const coerced = raw == null ? null : typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2)
       updateNodeData(nodeId, { output: coerced })
       break
@@ -27,8 +27,7 @@ function applyOutput(
   }
 }
 
-const POLL_INTERVAL_MS = 2_000
-const CLEAR_DELAY_MS   = 3_000
+const CLEAR_DELAY_MS = 3_000
 
 export function useSSE(workflowId: string) {
   const { isLoaded }   = useAuth()
@@ -38,52 +37,73 @@ export function useSSE(workflowId: string) {
   const updateNodeData = useWorkflowStore((s) => s.updateNodeData)
   const activeRunId    = useWorkflowStore((s) => s.activeRunId)
 
-  const stopRef       = useRef(false)
-  const timerRef      = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     if (!workflowId || !isLoaded || !activeRunId) return
     const runId = activeRunId
 
-    stopRef.current = false
+    let cancelled = false
+    let es: EventSource | null = null
 
-    async function poll() {
-      if (stopRef.current) return
+    async function connect() {
+      let localEs: EventSource
       try {
-        const { workflowRun } = await api.runs.get(workflowId, runId)
-        if (stopRef.current) return
-
-        for (const exec of workflowRun.nodeExecutions ?? []) {
-          setNodeStatus(exec.nodeId, exec.status as never, exec.status === 'failed' ? (exec.error ?? null) : null)
-          if (exec.output && exec.status === 'success') {
-            const { nodes } = useWorkflowStore.getState()
-            const node = nodes.find((n) => n.id === exec.nodeId)
-            const type = node?.type ?? exec.nodeType
-            applyOutput(exec.nodeId, type, exec.output, updateNodeData)
-          }
-        }
-
-        const done = ['success', 'failed', 'partial'].includes(workflowRun.status)
-        if (done) {
-          setActiveRunId(workflowRun.id)
-          clearTimerRef.current = setTimeout(clearExecution, CLEAR_DELAY_MS)
-          return
-        }
+        localEs = await api.runs.stream(workflowId)
       } catch {
-        // swallow poll errors, keep trying
+        return
       }
 
-      if (!stopRef.current) {
-        timerRef.current = setTimeout(poll, POLL_INTERVAL_MS)
+      if (cancelled) {
+        localEs.close()
+        return
+      }
+
+      es = localEs
+
+      es.addEventListener('node-status', (e: MessageEvent) => {
+        const data = JSON.parse(e.data)
+        if (data.runId !== runId) return
+        setNodeStatus(data.nodeId, 'running', null)
+      })
+
+      es.addEventListener('node-complete', (e: MessageEvent) => {
+        const data = JSON.parse(e.data)
+        if (data.runId !== runId) return
+        setNodeStatus(data.nodeId, 'success', null)
+        if (data.output) {
+          const { nodes } = useWorkflowStore.getState()
+          const node = nodes.find((n) => n.id === data.nodeId)
+          applyOutput(data.nodeId, node?.type ?? '', data.output, updateNodeData)
+        }
+      })
+
+      es.addEventListener('node-failed', (e: MessageEvent) => {
+        const data = JSON.parse(e.data)
+        if (data.runId !== runId) return
+        setNodeStatus(data.nodeId, data.status ?? 'failed', data.error ?? null)
+      })
+
+      es.addEventListener('run-complete', (e: MessageEvent) => {
+        const data = JSON.parse(e.data)
+        if (data.runId !== runId) return
+        es?.close()
+        es = null
+        setActiveRunId(runId)
+        clearTimerRef.current = setTimeout(clearExecution, CLEAR_DELAY_MS)
+      })
+
+      es.onerror = () => {
+        es?.close()
+        es = null
       }
     }
 
-    poll()
+    connect()
 
     return () => {
-      stopRef.current = true
-      clearTimeout(timerRef.current)
+      cancelled = true
+      es?.close()
       clearTimeout(clearTimerRef.current)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

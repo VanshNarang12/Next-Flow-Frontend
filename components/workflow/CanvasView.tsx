@@ -94,7 +94,7 @@ function makeNode(type: string, position: { x: number; y: number }, existingCoun
     data: {
       label: `Gemini #${num}`,
       deletable: true,
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.0-flash',
       inputs: {
         prompt:       { value: null, connectedFrom: null },
         systemPrompt: { value: '',   connectedFrom: null },
