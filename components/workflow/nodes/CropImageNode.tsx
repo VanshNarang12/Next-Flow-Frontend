@@ -18,6 +18,7 @@ type CropImageData = {
   }
   outputs: { outputImage: string | null }
   status:  'idle' | 'running' | 'success' | 'failed'
+  error?:  string | null
   triggerDevRunId: string | null
 }
 
@@ -146,6 +147,13 @@ export default function CropImageNode({ id, data, selected }: NodeProps) {
             </div>
           )}
         </div>
+
+        {/* Error message */}
+        {d.status === 'failed' && d.error && (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1.5">
+            <p className="text-[10px] text-red-400 break-words line-clamp-4">{d.error}</p>
+          </div>
+        )}
       </div>
     </div>
   )

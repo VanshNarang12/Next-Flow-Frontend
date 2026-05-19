@@ -265,6 +265,36 @@ export default function GeminiNode({ id, data, selected }: NodeProps) {
                   className="nodrag nopan flex-1 bg-[#111] border border-white/10 rounded px-2 py-0.5 text-xs text-white outline-none focus:border-violet-400/50 transition-colors"
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-white/35 w-16 flex-shrink-0">Top P</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={settings.topP}
+                  onChange={(e) => setSetting('topP', Number(e.target.value))}
+                  className="nodrag nopan flex-1 h-1 accent-violet-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-white/40 w-8 text-right tabular-nums">
+                  {settings.topP.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-white/35 w-16 flex-shrink-0">Top K</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={settings.topK}
+                  onChange={(e) => setSetting('topK', Number(e.target.value))}
+                  className="nodrag nopan flex-1 h-1 accent-violet-400 cursor-pointer"
+                />
+                <span className="text-[10px] text-white/40 w-8 text-right tabular-nums">
+                  {settings.topK}
+                </span>
+              </div>
             </div>
           )}
         </div>

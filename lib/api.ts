@@ -184,6 +184,10 @@ export const api = {
       })
     },
 
+    createFromSample(): Promise<Workflow> {
+      return request('/api/workflows/sample', { method: 'POST' })
+    },
+
     get(id: string): Promise<Workflow> {
       return request(`/api/workflows/${id}`)
     },
